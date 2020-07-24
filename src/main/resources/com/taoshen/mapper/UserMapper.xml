@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.taoshen.dao.UserDao">
+    <insert id="save" parameterType="User" useGeneratedKeys="true" keyProperty="id">
+        insert into t_user values(#{id},#{username},#{password},#{salt});
+    </insert>
+
+    <select id="findByUsername" parameterType="String" resultType="User">
+        select id,username,password,salt from t_user where username=#{username}
+    </select>
+
+
+    <!--type为User 说明原生类是User-->
+    <resultMap id="userMap" type="User">
+        <!--使用id标签 所以该属性是主键  表中是uid User实体类中是id-->
+        <id column="uid" property="id"/>
+        <!--使用普通result标签 说明是普通属性 表中是username 实体类中是username-->
+        <result column="username" property="username"/>
+        <!--该字段同时也是实体类 实体类中字段是roles javaType为list说明是List集合 ofType就表示集合元素是Role-->
+        <collection property="roles" javaType="list" ofType="Role">
+            <!--主键 这个Role类字段处理一下 表中为rid 实体类中为id-->
+            <id column="rid" property="id"/>
+            <!--表为rname 实体类中为name-->
+            <result column="rname" property="name"/>
+        </collection>
+    </resultMap>
+
+    <!--涉及到多表关联查询 所以使用resultMap格式-->
+    <select id="findRolesByUsername" parameterType="String" resultMap="userMap">
+        SELECT
+	        u.id uid,
+	        u.username,
+	        r.id rid,
+	        r.name rname
+        FROM
+	        t_user u
+        LEFT JOIN t_user_role ur ON u.id = ur.userId
+        LEFT JOIN t_role r ON ur.roleId = r.id
+        WHERE
+	        u.username = #{username}
+    </select>
+
+    <select id="findPermissionsByRoleId" parameterType="String" resultType="Permission">
+        select p.id,p.name,p.url,r.name from t_role r
+        left join t_role_permission rp
+        on r.id=rp.roleId
+        left join t_permission p
+        on p.id=rp.permissionId
+        where r.id = #{id}
+    </select>
+
+
+
+</mapper>
